@@ -21,13 +21,6 @@ class UserPosition(object):
 def getCorrectDescription(stationDescription):
     return ((str(stationDescription).replace("\"\"", "\"")).replace("\'", "\""))[24:-2]
 
-def createStationsObjectList(empRows):
-	list = []
-	for column1 in empRows:
-		correctStr = getCorrectDescription(column1)
-		list.append(json.loads(correctStr, object_hook=lambda d: Namespace(**d)))
-	return list
-
 def getCurrentCoordinateObject(literalCoordinates):
 	return (UserPosition(float(literalCoordinates.split(',')[0]), float(literalCoordinates.split(',')[1])))
 
@@ -35,15 +28,15 @@ def getCurrentCoordinateObject(literalCoordinates):
 def emp():
 	try:
 		currentPosition = getCurrentCoordinateObject(str(request.args.get("location")))
-		print(currentPosition.latitude)
 		conn = mysql.connect()
 		cursor = conn.cursor(pymysql.cursors.DictCursor)
 		cursor.execute("SELECT stationDescription FROM VelibLocation")
-		empRows = cursor.fetchall()
-		stationsList = createStationsObjectList(empRows)
-		print(stationsList[0].gps.latitude)
-		find10ClothestStations(currentPosition, stationsList)
-		respone = jsonify(empRows)
+		stationRows = cursor.fetchall()
+		foundedStationsId = find10ClothestStations(currentPosition, stationRows)
+		result = []
+		for i in foundedStationsId:
+			result.append(stationRows[i])
+		respone = jsonify(result)
 		respone.status_code = 200
 		return respone
 	except Exception as e:
